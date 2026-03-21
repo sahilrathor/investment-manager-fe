@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/apiService';
 import { queryKeys } from '@/lib/queryKeys';
 import { useAuthStore, User } from '@/stores/useAuthStore';
+import { endpointsConfig } from '@/config/endpointsConfig';
 import Cookies from 'js-cookie';
 
 export interface LoginCredentials {
@@ -27,7 +28,7 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (credentials: LoginCredentials) =>
-      api.post<AuthResponse, LoginCredentials>('/auth/login', credentials),
+      api.post<AuthResponse, LoginCredentials>(endpointsConfig.AUTH.LOGIN, credentials),
     onSuccess: (data) => {
       Cookies.set('access_token', data.token, { expires: 1 / 96 });
       Cookies.set('refresh_token', data.refreshToken, { expires: 7 });
@@ -43,7 +44,7 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: (credentials: RegisterCredentials) =>
-      api.post<AuthResponse, RegisterCredentials>('/auth/register', credentials),
+      api.post<AuthResponse, RegisterCredentials>(endpointsConfig.AUTH.REGISTER, credentials),
     onSuccess: (data) => {
       Cookies.set('access_token', data.token, { expires: 1 / 96 });
       Cookies.set('refresh_token', data.refreshToken, { expires: 7 });
@@ -60,7 +61,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => {
       const refreshToken = Cookies.get('refresh_token');
-      return api.post('/auth/logout', { refreshToken });
+      return api.post(endpointsConfig.AUTH.LOGOUT, { refreshToken });
     },
     onSettled: () => {
       Cookies.remove('access_token');
@@ -76,7 +77,7 @@ export function useAuthCheck() {
 
   return useQuery({
     queryKey: queryKeys.auth.me(),
-    queryFn: () => api.get<User>('/auth/me'),
+    queryFn: () => api.get<User>(endpointsConfig.AUTH.ME),
     retry: false,
     staleTime: Infinity,
     enabled: !!Cookies.get('access_token') && !authData.isAuthenticated,

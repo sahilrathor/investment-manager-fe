@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/apiService';
 import { queryKeys } from '@/lib/queryKeys';
+import { endpointsConfig } from '@/config/endpointsConfig';
 
 export interface StockPrice {
   symbol: string;
@@ -31,7 +32,7 @@ export interface SearchResult {
 export function useStockPrice(symbol: string) {
   return useQuery({
     queryKey: queryKeys.market.stock(symbol),
-    queryFn: () => api.get<StockPrice>(`/market/stock/${symbol}`),
+    queryFn: () => api.get<StockPrice>(endpointsConfig.MARKET.STOCK(symbol)),
     enabled: !!symbol,
     refetchInterval: 60000,
   });
@@ -40,7 +41,7 @@ export function useStockPrice(symbol: string) {
 export function useCryptoPrice(id: string) {
   return useQuery({
     queryKey: queryKeys.market.crypto(id),
-    queryFn: () => api.get<CryptoPrice>(`/market/crypto/${id}`),
+    queryFn: () => api.get<CryptoPrice>(endpointsConfig.MARKET.CRYPTO(id)),
     enabled: !!id,
     refetchInterval: 60000,
   });
@@ -49,7 +50,7 @@ export function useCryptoPrice(id: string) {
 export function useMarketSearch(query: string, type: string = 'stock') {
   return useQuery({
     queryKey: queryKeys.market.search(query),
-    queryFn: () => api.get<SearchResult[]>(`/market/search?q=${query}&type=${type}`),
+    queryFn: () => api.get<SearchResult[]>(`${endpointsConfig.MARKET.SEARCH}?q=${query}&type=${type}`),
     enabled: query.length >= 2,
   });
 }

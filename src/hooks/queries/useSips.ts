@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/apiService';
 import { queryKeys } from '@/lib/queryKeys';
+import { endpointsConfig } from '@/config/endpointsConfig';
 
 export interface Sip {
   id: string;
@@ -26,7 +27,7 @@ export interface CreateSipPayload {
 export function useSips() {
   return useQuery({
     queryKey: queryKeys.sips.lists(),
-    queryFn: () => api.get<Sip[]>('/sips'),
+    queryFn: () => api.get<Sip[]>(endpointsConfig.SIPS.LIST),
   });
 }
 
@@ -34,7 +35,7 @@ export function useCreateSip() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateSipPayload) =>
-      api.post<Sip, CreateSipPayload>('/sips', payload),
+      api.post<Sip, CreateSipPayload>(endpointsConfig.SIPS.CREATE, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.sips.lists() }),
   });
 }
@@ -43,7 +44,7 @@ export function useUpdateSip() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateSipPayload> & { status?: string } }) =>
-      api.put<Sip>(`/sips/${id}`, data),
+      api.put<Sip>(endpointsConfig.SIPS.UPDATE(id), data),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.sips.lists() }),
   });
 }
@@ -51,7 +52,7 @@ export function useUpdateSip() {
 export function useDeleteSip() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.delete(`/sips/${id}`),
+    mutationFn: (id: string) => api.delete(endpointsConfig.SIPS.DELETE(id)),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.sips.lists() }),
   });
 }

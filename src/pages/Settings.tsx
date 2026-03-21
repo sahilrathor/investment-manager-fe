@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { api } from '@/lib/api/apiService';
+import { endpointsConfig } from '@/config/endpointsConfig';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,7 @@ export function Settings() {
     }
     setLoading(true);
     try {
-      await api.post('/telegram/link', { chatId });
+      await api.post(endpointsConfig.TELEGRAM.LINK, { chatId });
       setAuth({ ...auth, user: auth.user ? { ...auth.user, telegramChatId: chatId } : null });
       toast.success('Telegram linked successfully');
       setChatId('');
@@ -42,7 +43,7 @@ export function Settings() {
   const unlinkTelegram = async () => {
     setLoading(true);
     try {
-      await api.post('/telegram/unlink');
+      await api.post(endpointsConfig.TELEGRAM.UNLINK);
       setAuth({ ...auth, user: auth.user ? { ...auth.user, telegramChatId: null } : null });
       toast.success('Telegram unlinked');
     } catch (error: any) {
