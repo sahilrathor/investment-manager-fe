@@ -1,6 +1,5 @@
 import { usePortfolios } from '@/hooks/queries/usePortfolios';
 import { useAllTransactions } from '@/hooks/queries/useTransactions';
-import { useAssets } from '@/hooks/queries/useAssets';
 import { StatCard } from '@/components/common/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, TrendingUp, TrendingDown, ArrowLeftRight, PieChart } from 'lucide-react';
@@ -18,12 +17,7 @@ export function Dashboard() {
 
   const recentTransactions = (transactions || []).slice(0, 5);
 
-  const allocationData = [
-    { name: 'Stocks', value: 40, color: '#3b82f6' },
-    { name: 'Crypto', value: 25, color: '#f59e0b' },
-    { name: 'Mutual Funds', value: 20, color: '#10b981' },
-    { name: 'SIPs', value: 15, color: '#8b5cf6' },
-  ];
+  const allocationData: { name: string; value: number; color: string }[] = [];
 
   return (
     <div className="space-y-6">
@@ -65,34 +59,40 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={allocationData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {allocationData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </RechartsPieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center mt-4">
-              {allocationData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-sm text-muted-foreground">{item.name}</span>
+            {allocationData.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No assets to display</p>
+            ) : (
+              <>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={allocationData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {allocationData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+                <div className="flex flex-wrap gap-4 justify-center mt-4">
+                  {allocationData.map((item) => (
+                    <div key={item.name} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm text-muted-foreground">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { envConfig } from '@/config/envConfig';
 
 export function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(envConfig.API_LOGIN_EMAIL);
+  const [password, setPassword] = useState(envConfig.API_LOGIN_PASS);
   const login = useLogin();
   const { data: auth } = useAuthStore();
 

@@ -49,12 +49,33 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (envConfig.DEBUG) {
+    (config as any)._requestStartTime = Date.now();
+  }
   return config;
 });
 
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (envConfig.DEBUG) {
+      const duration = Date.now() - ((response.config as any)._requestStartTime || Date.now());
+      console.log(`[API] ${response.config.method?.toUpperCase()} ${response.config.url} (${duration}ms)`, {
+        status: response.status,
+        data: response.data,
+      });
+    }
+    return response;
+  },
   async (error: AxiosError) => {
+    if (envConfig.DEBUG) {
+      const duration = Date.now() - ((error.config as any)?._requestStartTime || Date.now());
+      console.error(`[API ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url} (${duration}ms)`, {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+    }
+
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
