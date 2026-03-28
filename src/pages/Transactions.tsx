@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ArrowLeftRight } from 'lucide-react';
+import { Plus, Trash2, ArrowLeftRight, TrendingDown, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export function Transactions() {
@@ -107,13 +108,34 @@ export function Transactions() {
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="buy">Buy</SelectItem>
-                    <SelectItem value="sell">Sell</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, type: 'buy' })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md border text-sm font-medium transition-colors",
+                      form.type === 'buy'
+                        ? "bg-loss/10 border-loss text-loss"
+                        : "border-input bg-background hover:bg-accent"
+                    )}
+                  >
+                    <TrendingDown className="h-4 w-4" />
+                    Buy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, type: 'sell' })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md border text-sm font-medium transition-colors",
+                      form.type === 'sell'
+                        ? "bg-profit/10 border-profit text-profit"
+                        : "border-input bg-background hover:bg-accent"
+                    )}
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    Sell
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
