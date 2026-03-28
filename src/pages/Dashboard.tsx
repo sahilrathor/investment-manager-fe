@@ -1,23 +1,51 @@
 import { usePortfolios } from '@/hooks/queries/usePortfolios';
 import { useAllTransactions } from '@/hooks/queries/useTransactions';
+import { useAllAssets } from '@/hooks/queries/useAssets';
 import { StatCard } from '@/components/common/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, TrendingUp, TrendingDown, ArrowLeftRight, PieChart } from 'lucide-react';
 import { format } from 'date-fns';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
+const ALLOCATION_COLORS: Record<string, string> = {
+  stock: '#3b82f6',
+  crypto: '#f59e0b',
+  mutual_fund: '#10b981',
+  sip: '#8b5cf6',
+};
+
+const ALLOCATION_LABELS: Record<string, string> = {
+  stock: 'Stocks',
+  crypto: 'Crypto',
+  mutual_fund: 'Mutual Funds',
+  sip: 'SIPs',
+};
+
 export function Dashboard() {
   const { data: portfolios } = usePortfolios();
   const { data: transactions } = useAllTransactions();
+  const { data: assets } = useAllAssets();
 
-  const totalValue = 0;
-  const totalInvested = 0;
+  const totalValue = (assets || []).reduce((sum, a) => sum + a.quantity * a.currentPrice, 0);
+  const totalInvested = (assets || []).reduce((sum, a) => sum + a.quantity * a.avgBuyPrice, 0);
   const totalPnL = totalValue - totalInvested;
   const pnlPercent = totalInvested > 0 ? ((totalPnL / totalInvested) * 100) : 0;
 
   const recentTransactions = (transactions || []).slice(0, 5);
 
-  const allocationData: { name: string; value: number; color: string }[] = [];
+  const allocationByType = (assets || []).reduce((acc, asset) => {
+    const value = asset.quantity * asset.currentPrice;
+    acc[asset.type] = (acc[asset.type] || 0) + value;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const allocationData = Object.entries(allocationByType)
+    .filter(([, value]) => value > 0)
+    .map(([type, value]) => ({
+      name: ALLOCATION_LABELS[type] || type,
+      value,
+      color: ALLOCATION_COLORS[type] || '#6b7280',
+    }));
 
   return (
     <div className="space-y-6">

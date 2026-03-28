@@ -20,6 +20,7 @@ export const endpointsConfig = {
   },
 
   ASSETS: {
+    LIST_ALL: `${API}/assets`,
     LIST: (portfolioId: string) => `${API}/portfolios/${portfolioId}/assets`,
     CREATE: (portfolioId: string) => `${API}/portfolios/${portfolioId}/assets`,
     GET: (id: string) => `${API}/assets/${id}`,

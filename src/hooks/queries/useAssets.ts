@@ -37,6 +37,13 @@ export function useAssets(portfolioId: string) {
   });
 }
 
+export function useAllAssets() {
+  return useQuery({
+    queryKey: queryKeys.assets.listAll(),
+    queryFn: () => api.get<Asset[]>(endpointsConfig.ASSETS.LIST_ALL),
+  });
+}
+
 export function useAsset(id: string) {
   return useQuery({
     queryKey: queryKeys.assets.detail(id),

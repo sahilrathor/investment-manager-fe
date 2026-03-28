@@ -1,17 +1,92 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePortfolio } from '@/hooks/queries/usePortfolios';
 import { useAssets, useCreateAsset, useDeleteAsset, Asset } from '@/hooks/queries/useAssets';
+import { useMarketSearch, useStockPrice, useCryptoPrice, SearchResult } from '@/hooks/queries/useMarket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, ArrowLeft, Package } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Package, Search, Loader2, TrendingUp, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+function AssetCard({ asset, onDelete }: { asset: Asset; onDelete: (id: string) => void }) {
+  const { data: stockPrice } = useStockPrice(
+    asset.type === 'stock' && asset.useLivePrice ? asset.symbol : ''
+  );
+  const { data: cryptoPrice } = useCryptoPrice(
+    asset.type === 'crypto' && asset.useLivePrice ? asset.symbol : ''
+  );
+
+  const livePrice = asset.type === 'stock' ? stockPrice?.price
+    : asset.type === 'crypto' ? cryptoPrice?.price
+    : undefined;
+
+  const currentPrice = livePrice ?? asset.currentPrice;
+  const value = asset.quantity * currentPrice;
+  const invested = asset.quantity * asset.avgBuyPrice;
+  const pnl = value - invested;
+  const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="font-semibold">{asset.name}</h3>
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              {asset.symbol}
+              {asset.useLivePrice && (
+                <RefreshCw className="h-3 w-3 text-green-500" />
+              )}
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <p className="text-muted-foreground">Quantity</p>
+                <p className="font-medium">{asset.quantity}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Avg Price</p>
+                <p className="font-medium">${asset.avgBuyPrice}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Current Price</p>
+                <p className="font-medium">${currentPrice.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Value</p>
+                <p className="font-medium">${value.toLocaleString()}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-muted-foreground">P&L</p>
+                <p className={`font-medium ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  ${pnl.toLocaleString()} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <Link to={`/transactions?assetId=${asset.id}`}>
+              <Button variant="ghost" size="sm">Txns</Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              onClick={() => onDelete(asset.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function PortfolioDetail() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +97,8 @@ export function PortfolioDetail() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCryptoId, setSelectedCryptoId] = useState<string>('');
   const [form, setForm] = useState({
     type: 'stock',
     symbol: '',
@@ -31,6 +108,44 @@ export function PortfolioDetail() {
     currentPrice: '',
     useLivePrice: true,
   });
+
+  const { data: searchResults, isLoading: isSearching } = useMarketSearch(searchQuery, form.type);
+  const { data: stockPrice, isLoading: isLoadingStockPrice } = useStockPrice(
+    form.type === 'stock' && form.symbol ? form.symbol : ''
+  );
+  const { data: cryptoPrice, isLoading: isLoadingCryptoPrice } = useCryptoPrice(
+    form.type === 'crypto' && selectedCryptoId ? selectedCryptoId : ''
+  );
+
+  const isFetchingPrice = isLoadingStockPrice || isLoadingCryptoPrice;
+  const livePrice = form.type === 'stock' ? stockPrice?.price : form.type === 'crypto' ? cryptoPrice?.price : undefined;
+
+  useEffect(() => {
+    if (livePrice !== undefined) {
+      setForm((prev) => ({ ...prev, currentPrice: String(livePrice) }));
+    }
+  }, [livePrice]);
+
+  const handleSelectSearchResult = (result: SearchResult) => {
+    setForm({
+      ...form,
+      symbol: result.symbol,
+      name: result.name,
+      currentPrice: '',
+    });
+    if (result.type === 'crypto' && result.id) {
+      setSelectedCryptoId(result.id);
+    } else {
+      setSelectedCryptoId('');
+    }
+    setSearchQuery('');
+  };
+
+  const handleTypeChange = (type: string) => {
+    setForm({ ...form, type, symbol: '', name: '', currentPrice: '' });
+    setSearchQuery('');
+    setSelectedCryptoId('');
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +167,8 @@ export function PortfolioDetail() {
           toast.success('Asset added');
           setDialogOpen(false);
           setForm({ type: 'stock', symbol: '', name: '', quantity: '', avgBuyPrice: '', currentPrice: '', useLivePrice: true });
+          setSearchQuery('');
+          setSelectedCryptoId('');
         },
         onError: (error: any) => toast.error(error.message || 'Failed to add asset'),
       }
@@ -68,50 +185,6 @@ export function PortfolioDetail() {
   const stockAssets = assets?.filter((a) => a.type === 'stock' || a.type === 'mutual_fund') || [];
   const cryptoAssets = assets?.filter((a) => a.type === 'crypto') || [];
   const sipAssets = assets?.filter((a) => a.type === 'sip') || [];
-
-  const renderAssetCard = (asset: Asset) => (
-    <Card key={asset.id}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-semibold">{asset.name}</h3>
-            <p className="text-sm text-muted-foreground">{asset.symbol}</p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="text-muted-foreground">Quantity</p>
-                <p className="font-medium">{asset.quantity}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Avg Price</p>
-                <p className="font-medium">${asset.avgBuyPrice}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Current Price</p>
-                <p className="font-medium">${asset.currentPrice}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Value</p>
-                <p className="font-medium">${(asset.quantity * asset.currentPrice).toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Link to={`/transactions?assetId=${asset.id}`}>
-              <Button variant="ghost" size="sm">Txns</Button>
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive"
-              onClick={() => setDeleteId(asset.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="space-y-6">
@@ -143,7 +216,7 @@ export function PortfolioDetail() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+                <Select value={form.type} onValueChange={handleTypeChange}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -154,6 +227,42 @@ export function PortfolioDetail() {
                     <SelectItem value="sip">SIP</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Search {form.type === 'stock' ? 'Stock' : form.type === 'crypto' ? 'Crypto' : form.type === 'mutual_fund' ? 'Mutual Fund' : 'Asset'}</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={`Search by name or symbol...`}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                  {isSearching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+                {searchQuery.length >= 2 && searchResults && searchResults.length > 0 && (
+                  <div className="border rounded-md max-h-48 overflow-y-auto bg-background">
+                    {searchResults.map((result) => (
+                      <button
+                        key={`${result.symbol}-${result.id || ''}`}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between"
+                        onClick={() => handleSelectSearchResult(result)}
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{result.symbol}</p>
+                          <p className="text-xs text-muted-foreground">{result.name}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground capitalize">{result.type}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searchQuery.length >= 2 && !isSearching && (!searchResults || searchResults.length === 0) && (
+                  <p className="text-xs text-muted-foreground px-1">No results found. You can manually enter the details below.</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -177,7 +286,25 @@ export function PortfolioDetail() {
               </div>
               <div className="space-y-2">
                 <Label>Current Price</Label>
-                <Input type="number" step="any" placeholder="175" value={form.currentPrice} onChange={(e) => setForm({ ...form, currentPrice: e.target.value })} />
+                {(form.type === 'stock' || form.type === 'crypto') ? (
+                  <div className="relative">
+                    <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      step="any"
+                      placeholder="Select an asset to fetch price"
+                      value={form.currentPrice}
+                      onChange={(e) => setForm({ ...form, currentPrice: e.target.value })}
+                      className="pl-9"
+                      disabled={isFetchingPrice}
+                    />
+                    {isFetchingPrice && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                ) : (
+                  <Input type="number" step="any" placeholder="Enter current price" value={form.currentPrice} onChange={(e) => setForm({ ...form, currentPrice: e.target.value })} />
+                )}
               </div>
               <Button type="submit" className="w-full" disabled={createAsset.isPending}>
                 {createAsset.isPending ? 'Adding...' : 'Add Asset'}
@@ -202,7 +329,7 @@ export function PortfolioDetail() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">{stockAssets.map(renderAssetCard)}</div>
+            <div className="grid gap-4 md:grid-cols-2">{stockAssets.map((asset) => <AssetCard key={asset.id} asset={asset} onDelete={handleDelete} />)}</div>
           )}
         </TabsContent>
         <TabsContent value="crypto" className="space-y-4">
@@ -214,7 +341,7 @@ export function PortfolioDetail() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">{cryptoAssets.map(renderAssetCard)}</div>
+            <div className="grid gap-4 md:grid-cols-2">{cryptoAssets.map((asset) => <AssetCard key={asset.id} asset={asset} onDelete={handleDelete} />)}</div>
           )}
         </TabsContent>
         <TabsContent value="sips" className="space-y-4">
@@ -226,7 +353,7 @@ export function PortfolioDetail() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">{sipAssets.map(renderAssetCard)}</div>
+            <div className="grid gap-4 md:grid-cols-2">{sipAssets.map((asset) => <AssetCard key={asset.id} asset={asset} onDelete={handleDelete} />)}</div>
           )}
         </TabsContent>
       </Tabs>

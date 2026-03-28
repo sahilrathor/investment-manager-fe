@@ -34,7 +34,7 @@ export function useStockPrice(symbol: string) {
     queryKey: queryKeys.market.stock(symbol),
     queryFn: () => api.get<StockPrice>(endpointsConfig.MARKET.STOCK(symbol)),
     enabled: !!symbol,
-    refetchInterval: 60000,
+    refetchInterval: 30000,
   });
 }
 
@@ -43,13 +43,13 @@ export function useCryptoPrice(id: string) {
     queryKey: queryKeys.market.crypto(id),
     queryFn: () => api.get<CryptoPrice>(endpointsConfig.MARKET.CRYPTO(id)),
     enabled: !!id,
-    refetchInterval: 60000,
+    refetchInterval: 30000,
   });
 }
 
 export function useMarketSearch(query: string, type: string = 'stock') {
   return useQuery({
-    queryKey: queryKeys.market.search(query),
+    queryKey: queryKeys.market.search(query, type),
     queryFn: () => api.get<SearchResult[]>(`${endpointsConfig.MARKET.SEARCH}?q=${query}&type=${type}`),
     enabled: query.length >= 2,
   });

@@ -12,6 +12,7 @@ export const queryKeys = {
   assets: {
     all: ['assets'] as const,
     lists: () => [...queryKeys.assets.all, 'list'] as const,
+    listAll: () => [...queryKeys.assets.lists(), 'all'] as const,
     list: (portfolioId: string) => [...queryKeys.assets.lists(), portfolioId] as const,
     detail: (id: string) => [...queryKeys.assets.all, 'detail', id] as const,
   },
@@ -34,6 +35,6 @@ export const queryKeys = {
     all: ['market'] as const,
     stock: (symbol: string) => [...queryKeys.market.all, 'stock', symbol] as const,
     crypto: (id: string) => [...queryKeys.market.all, 'crypto', id] as const,
-    search: (q: string) => [...queryKeys.market.all, 'search', q] as const,
+    search: (q: string, type: string) => [...queryKeys.market.all, 'search', q, type] as const,
   },
 } as const;
