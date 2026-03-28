@@ -36,6 +36,7 @@ export const endpointsConfig = {
     LIST_ALL: `${API}/transactions`,
     LIST: (assetId: string) => `${API}/assets/${assetId}/transactions`,
     CREATE: (assetId: string) => `${API}/assets/${assetId}/transactions`,
+    UPDATE: (id: string) => `${API}/transactions/${id}`,
     DELETE: (id: string) => `${API}/transactions/${id}`,
   },
 

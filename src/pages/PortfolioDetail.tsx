@@ -4,6 +4,7 @@ import { usePortfolio } from '@/hooks/queries/usePortfolios';
 import { useAssets, useCreateAsset, useDeleteAsset } from '@/hooks/queries/useAssets';
 import { useMarketSearch, useStockPrice, useCryptoPrice, SearchResult } from '@/hooks/queries/useMarket';
 import { AssetCard } from '@/components/common/AssetCard';
+import { EditPortfolioDialog } from '@/components/common/EditPortfolioDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -115,15 +116,24 @@ export function PortfolioDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/portfolios">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold">{portfolio?.name}</h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">{portfolio?.name}</h1>
+              {portfolio && (
+                <EditPortfolioDialog
+                  portfolioId={portfolio.id}
+                  currentName={portfolio.name}
+                  currentDescription={portfolio.description}
+                />
+              )}
+            </div>
             {portfolio?.description && (
               <p className="text-muted-foreground">{portfolio.description}</p>
             )}

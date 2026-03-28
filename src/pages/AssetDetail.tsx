@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { usePriceHistory } from '@/hooks/queries/useMarket';
 import { MoveAssetDialog } from '@/components/common/MoveAssetDialog';
+import { EditTransactionDialog } from '@/components/common/EditTransactionDialog';
 import {
   ArrowLeft, TrendingUp, TrendingDown, ExternalLink,
   Newspaper, Calendar, BarChart3, Loader2, Plus,
@@ -487,6 +488,7 @@ export function AssetDetail() {
                         <th className="p-4">Price</th>
                         <th className="p-4">Total</th>
                         <th className="p-4">Notes</th>
+                        <th className="p-4"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -505,6 +507,9 @@ export function AssetDetail() {
                           <td className="p-4 text-sm">${txn.pricePerUnit.toLocaleString()}</td>
                           <td className="p-4 text-sm font-medium">${txn.totalAmount.toLocaleString()}</td>
                           <td className="p-4 text-sm text-muted-foreground">{txn.notes || '-'}</td>
+                          <td className="p-4">
+                            <EditTransactionDialog transaction={{ ...txn, assetId: asset.id }} />
+                          </td>
                         </tr>
                       ))}
                     </tbody>

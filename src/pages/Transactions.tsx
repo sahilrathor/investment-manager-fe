@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EditTransactionDialog } from '@/components/common/EditTransactionDialog';
 import { Plus, Trash2, ArrowLeftRight, TrendingDown, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -206,9 +207,12 @@ export function Transactions() {
                       <td className="p-4 text-sm font-medium">${txn.totalAmount.toLocaleString()}</td>
                       <td className="p-4 text-sm text-muted-foreground">{txn.notes || '-'}</td>
                       <td className="p-4">
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(txn.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <EditTransactionDialog transaction={{ ...txn, assetId: '' }} />
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(txn.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
