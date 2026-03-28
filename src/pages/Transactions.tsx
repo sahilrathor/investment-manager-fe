@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useAllTransactions, useCreateTransaction, useDeleteTransaction } from '@/hooks/queries/useTransactions';
-import { usePortfolios } from '@/hooks/queries/usePortfolios';
+import { useAllAssets } from '@/hooks/queries/useAssets';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, ArrowLeftRight } from 'lucide-react';
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 
 export function Transactions() {
   const { data: transactions, isLoading } = useAllTransactions();
+  const { data: allAssets } = useAllAssets();
   const createTransaction = useCreateTransaction();
   const deleteTransaction = useDeleteTransaction();
 
@@ -28,6 +29,10 @@ export function Transactions() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.assetId) {
+      toast.error('Please select an asset');
+      return;
+    }
     createTransaction.mutate(
       {
         assetId: form.assetId,
@@ -81,8 +86,24 @@ export function Transactions() {
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label>Asset ID</Label>
-                <Input placeholder="Paste asset ID" value={form.assetId} onChange={(e) => setForm({ ...form, assetId: e.target.value })} required />
+                <Label>Asset</Label>
+                <Select value={form.assetId} onValueChange={(v) => setForm({ ...form, assetId: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an asset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allAssets?.map((asset) => (
+                      <SelectItem key={asset.id} value={asset.id}>
+                        {asset.name} ({asset.symbol})
+                      </SelectItem>
+                    ))}
+                    {(!allAssets || allAssets.length === 0) && (
+                      <SelectItem value="none" disabled>
+                        No assets found. Create an asset first.
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePortfolio } from '@/hooks/queries/usePortfolios';
-import { useAssets, useCreateAsset, useDeleteAsset, Asset } from '@/hooks/queries/useAssets';
+import { useAssets, useCreateAsset, useDeleteAsset } from '@/hooks/queries/useAssets';
 import { useMarketSearch, useStockPrice, useCryptoPrice, SearchResult } from '@/hooks/queries/useMarket';
+import { AssetCard } from '@/components/common/AssetCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,82 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, ArrowLeft, Package, Search, Loader2, TrendingUp, RefreshCw } from 'lucide-react';
+import { Plus, ArrowLeft, Package, Search, Loader2, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-function AssetCard({ asset, onDelete }: { asset: Asset; onDelete: (id: string) => void }) {
-  const { data: stockPrice } = useStockPrice(
-    asset.type === 'stock' && asset.useLivePrice ? asset.symbol : ''
-  );
-  const { data: cryptoPrice } = useCryptoPrice(
-    asset.type === 'crypto' && asset.useLivePrice ? asset.symbol : ''
-  );
-
-  const livePrice = asset.type === 'stock' ? stockPrice?.price
-    : asset.type === 'crypto' ? cryptoPrice?.price
-    : undefined;
-
-  const currentPrice = livePrice ?? asset.currentPrice;
-  const value = asset.quantity * currentPrice;
-  const invested = asset.quantity * asset.avgBuyPrice;
-  const pnl = value - invested;
-  const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
-
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-semibold">{asset.name}</h3>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              {asset.symbol}
-              {asset.useLivePrice && (
-                <RefreshCw className="h-3 w-3 text-green-500" />
-              )}
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="text-muted-foreground">Quantity</p>
-                <p className="font-medium">{asset.quantity}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Avg Price</p>
-                <p className="font-medium">${asset.avgBuyPrice}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Current Price</p>
-                <p className="font-medium">${currentPrice.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Value</p>
-                <p className="font-medium">${value.toLocaleString()}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-muted-foreground">P&L</p>
-                <p className={`font-medium ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  ${pnl.toLocaleString()} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Link to={`/transactions?assetId=${asset.id}`}>
-              <Button variant="ghost" size="sm">Txns</Button>
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive"
-              onClick={() => onDelete(asset.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export function PortfolioDetail() {
   const { id } = useParams<{ id: string }>();
