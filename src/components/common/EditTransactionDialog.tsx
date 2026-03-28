@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Edit3, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatINR } from '@/lib/currency';
 import toast from 'react-hot-toast';
 
 interface EditTransactionDialogProps {
@@ -97,7 +98,7 @@ export function EditTransactionDialog({ transaction }: EditTransactionDialogProp
           {quantity && pricePerUnit && (
             <div className="p-3 rounded-lg bg-muted text-sm">
               <span className="text-muted-foreground">Total: </span>
-              <span className="font-semibold">${(Number(quantity) * Number(pricePerUnit)).toLocaleString()}</span>
+              <span className="font-semibold">{formatINR(Number(quantity) * Number(pricePerUnit))}</span>
             </div>
           )}
           <Button type="submit" className="w-full" disabled={updateTxn.isPending}>

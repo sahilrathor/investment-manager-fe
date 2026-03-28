@@ -6,6 +6,7 @@ import { usePortfolios } from '@/hooks/queries/usePortfolios';
 import { useAllTransactions } from '@/hooks/queries/useTransactions';
 import { api } from '@/lib/api/apiService';
 import { endpointsConfig } from '@/config/endpointsConfig';
+import { formatINR, formatCompactINR } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -375,16 +376,16 @@ export function Settings() {
             <CardContent className="space-y-4">
               <div className="p-3 rounded-lg bg-muted/50">
                 <p className="text-xs text-muted-foreground">Total Value</p>
-                <p className="text-2xl font-bold">${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p className="text-2xl font-bold">{formatCompactINR(totalValue)}</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50">
                 <p className="text-xs text-muted-foreground">Total Invested</p>
-                <p className="text-xl font-semibold">${totalInvested.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p className="text-xl font-semibold">{formatINR(totalInvested)}</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50">
                 <p className="text-xs text-muted-foreground">P&L</p>
                 <p className={cn("text-xl font-semibold", totalPnL >= 0 ? 'text-profit' : 'text-loss')}>
-                  {totalPnL >= 0 ? '+' : ''}${totalPnL.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  {totalPnL >= 0 ? '+' : ''}{formatINR(totalPnL)}
                   <span className="text-sm ml-2">({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)</span>
                 </p>
               </div>
@@ -447,7 +448,7 @@ export function Settings() {
                       <p className="font-medium text-sm">{label}</p>
                       <p className="text-xs text-muted-foreground">{typeAssets.length} items</p>
                     </div>
-                    <p className="font-semibold text-sm">${typeValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    <p className="font-semibold text-sm">{formatINR(typeValue)}</p>
                   </div>
                 );
               })}

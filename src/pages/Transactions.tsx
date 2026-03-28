@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EditTransactionDialog } from '@/components/common/EditTransactionDialog';
+import { formatINR } from '@/lib/currency';
 import { Plus, Trash2, ArrowLeftRight, TrendingDown, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -203,8 +204,8 @@ export function Transactions() {
                         </span>
                       </td>
                       <td className="p-4 text-sm">{txn.quantity}</td>
-                      <td className="p-4 text-sm">${txn.pricePerUnit}</td>
-                      <td className="p-4 text-sm font-medium">${txn.totalAmount.toLocaleString()}</td>
+                      <td className="p-4 text-sm">{formatINR(txn.pricePerUnit)}</td>
+                      <td className="p-4 text-sm font-medium">{formatINR(txn.totalAmount)}</td>
                       <td className="p-4 text-sm text-muted-foreground">{txn.notes || '-'}</td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">

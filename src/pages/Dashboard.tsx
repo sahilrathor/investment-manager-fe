@@ -3,6 +3,7 @@ import { usePortfolios } from '@/hooks/queries/usePortfolios';
 import { useAllTransactions } from '@/hooks/queries/useTransactions';
 import { useAllAssets } from '@/hooks/queries/useAssets';
 import { useSips } from '@/hooks/queries/useSips';
+import { useExchangeRate, formatINR, formatUSD, usdToINR, isUSDAsset, formatCompactINR } from '@/lib/currency';
 import { StatCard } from '@/components/common/StatCard';
 import { IndicesTicker } from '@/components/common/IndicesTicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,16 +26,29 @@ export function Dashboard() {
   const { data: transactions } = useAllTransactions();
   const { data: assets } = useAllAssets();
   const { data: sips } = useSips();
+  const { data: exchangeRate } = useExchangeRate();
 
-  const totalValue = (assets || []).reduce((sum, a) => sum + a.quantity * (a.currentPrice || 0), 0);
-  const totalInvested = (assets || []).reduce((sum, a) => sum + a.quantity * (a.avgBuyPrice || 0), 0);
+  const usdToInrRate = exchangeRate?.rate || 83;
+
+  // Calculate values with crypto converted to INR
+  const totalValue = (assets || []).reduce((sum, a) => {
+    const val = a.quantity * (a.currentPrice || 0);
+    return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
+  }, 0);
+
+  const totalInvested = (assets || []).reduce((sum, a) => {
+    const val = a.quantity * (a.avgBuyPrice || 0);
+    return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
+  }, 0);
+
   const totalPnL = totalValue - totalInvested;
   const pnlPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
 
-  // Asset allocation by type
+  // Asset allocation by type (all in INR for chart)
   const allocationByType = (assets || []).reduce((acc, asset) => {
-    const value = asset.quantity * (asset.currentPrice || 0);
-    acc[asset.type] = (acc[asset.type] || 0) + value;
+    const val = asset.quantity * (asset.currentPrice || 0);
+    const inrVal = isUSDAsset(asset.type) ? usdToINR(val, usdToInrRate) : val;
+    acc[asset.type] = (acc[asset.type] || 0) + inrVal;
     return acc;
   }, {} as Record<string, number>);
 
@@ -46,18 +60,20 @@ export function Dashboard() {
       color: COLORS[i % COLORS.length],
     }));
 
-  // Top performers
+  // Top performers (P&L calculated in INR)
   const assetsWithPnL = (assets || []).map(a => {
-    const value = a.quantity * (a.currentPrice || 0);
+    const val = a.quantity * (a.currentPrice || 0);
     const invested = a.quantity * (a.avgBuyPrice || 0);
-    const pnl = value - invested;
-    const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
-    return { ...a, value, invested, pnl, pnlPct };
+    const valInr = isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val;
+    const investedInr = isUSDAsset(a.type) ? usdToINR(invested, usdToInrRate) : invested;
+    const pnl = valInr - investedInr;
+    const pnlPct = investedInr > 0 ? (pnl / investedInr) * 100 : 0;
+    return { ...a, value: valInr, invested: investedInr, pnl, pnlPct, originalPrice: a.currentPrice };
   }).sort((a, b) => b.pnlPct - a.pnlPct);
 
   const topPerformers = assetsWithPnL.slice(0, 5);
 
-  // Portfolio value history from transactions
+  // Portfolio value history from transactions (all in INR)
   const portfolioHistory = (() => {
     if (!transactions || transactions.length === 0) return [];
     const sorted = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -109,7 +125,7 @@ export function Dashboard() {
             <p className="text-sm font-medium text-white/80">Total Value</p>
             <Wallet className="h-5 w-5 text-white/60" />
           </div>
-          <p className="text-3xl font-bold mt-2">${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p className="text-3xl font-bold mt-2">{formatCompactINR(totalValue)}</p>
           <p className="text-sm text-white/70 mt-1">{assets?.length || 0} assets</p>
         </div>
 
@@ -119,7 +135,7 @@ export function Dashboard() {
               <p className="text-sm font-medium text-emerald">Total Invested</p>
               <TrendingUp className="h-5 w-5 text-emerald" />
             </div>
-            <p className="text-3xl font-bold mt-2">${totalInvested.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+            <p className="text-3xl font-bold mt-2">{formatCompactINR(totalInvested)}</p>
             <p className="text-sm text-muted-foreground mt-1">Cost basis</p>
           </CardContent>
         </Card>
@@ -131,7 +147,7 @@ export function Dashboard() {
               {totalPnL >= 0 ? <ArrowUpRight className="h-5 w-5 text-profit" /> : <ArrowDownRight className="h-5 w-5 text-loss" />}
             </div>
             <p className={cn("text-3xl font-bold mt-2", totalPnL >= 0 ? 'text-profit' : 'text-loss')}>
-              {totalPnL >= 0 ? '+' : ''}${totalPnL.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {totalPnL >= 0 ? '+' : ''}{formatINR(totalPnL)}
             </p>
             <p className={cn("text-sm mt-1", totalPnL >= 0 ? 'text-profit' : 'text-loss')}>
               {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
@@ -147,7 +163,7 @@ export function Dashboard() {
             </div>
             <p className="text-3xl font-bold mt-2">{activeSips.length}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              ${activeSips.reduce((sum, s) => sum + s.amount, 0).toLocaleString()}/month
+              {formatINR(activeSips.reduce((sum, s) => sum + s.amount, 0))}/month
             </p>
           </CardContent>
         </Card>
@@ -172,8 +188,8 @@ export function Dashboard() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.02 170)" />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Value']} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₹${(v / 100000).toFixed(0)}L`} />
+                    <Tooltip formatter={(v: number) => [formatINR(v), 'Value']} />
                     <Area type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorVal)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -198,7 +214,7 @@ export function Dashboard() {
                     <Pie data={allocationData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value">
                       {allocationData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => [`$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, '']} />
+                    <Tooltip formatter={(v: number) => [formatINR(v), '']} />
                   </RechartsPieChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap justify-center gap-4 mt-2">
@@ -241,7 +257,9 @@ export function Dashboard() {
                       <p className={cn("font-semibold text-sm", asset.pnlPct >= 0 ? 'text-profit' : 'text-loss')}>
                         {asset.pnlPct >= 0 ? '+' : ''}{asset.pnlPct.toFixed(2)}%
                       </p>
-                      <p className="text-xs text-muted-foreground">${asset.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isUSDAsset(asset.type) ? formatUSD(asset.originalPrice || 0) : formatINR(asset.value)}
+                      </p>
                     </div>
                   </Link>
                 ))}
@@ -273,7 +291,7 @@ export function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className={cn("font-semibold text-sm", txn.type === 'buy' ? 'text-loss' : 'text-profit')}>
-                        {txn.type === 'buy' ? '-' : '+'}${txn.totalAmount.toLocaleString()}
+                        {txn.type === 'buy' ? '-' : '+'}{formatINR(txn.totalAmount)}
                       </p>
                       <p className="text-xs text-muted-foreground">{txn.quantity} units</p>
                     </div>
@@ -298,8 +316,8 @@ export function Dashboard() {
                   <BarChart data={monthlyPnL}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.02 170)" />
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, '']} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₹${(v / 1000).toFixed(0)}K`} />
+                    <Tooltip formatter={(v: number) => [formatINR(v), '']} />
                     <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                       {monthlyPnL.map((e, i) => <Cell key={i} fill={e.fill} />)}
                     </Bar>
@@ -324,7 +342,10 @@ export function Dashboard() {
               <div className="space-y-3">
                 {portfolios.slice(0, 5).map(portfolio => {
                   const portfolioAssets = assets?.filter(a => a.portfolioId === portfolio.id) || [];
-                  const portfolioValue = portfolioAssets.reduce((sum, a) => sum + a.quantity * (a.currentPrice || 0), 0);
+                  const portfolioValue = portfolioAssets.reduce((sum, a) => {
+                    const val = a.quantity * (a.currentPrice || 0);
+                    return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
+                  }, 0);
                   return (
                     <Link key={portfolio.id} to={`/portfolios/${portfolio.id}`} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted transition-colors">
                       <div className="flex items-center gap-3">
@@ -336,7 +357,7 @@ export function Dashboard() {
                           <p className="text-xs text-muted-foreground">{portfolioAssets.length} assets</p>
                         </div>
                       </div>
-                      <p className="font-semibold text-sm">${portfolioValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="font-semibold text-sm">{formatINR(portfolioValue)}</p>
                     </Link>
                   );
                 })}

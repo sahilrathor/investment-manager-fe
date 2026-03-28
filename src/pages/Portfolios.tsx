@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { useExchangeRate, formatINR, usdToINR, isUSDAsset, formatCompactINR } from '@/lib/currency';
 import {
   Plus, Trash2, FolderKanban, TrendingUp, TrendingDown,
   ArrowUpRight, ArrowDownRight, BarChart3
@@ -22,27 +23,30 @@ export function Portfolios() {
   const { data: allAssets } = useAllAssets();
   const createPortfolio = useCreatePortfolio();
   const deletePortfolio = useDeletePortfolio();
+  const { data: exchangeRate } = useExchangeRate();
+
+  const usdToInrRate = exchangeRate?.rate || 83;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  // Calculate portfolio analytics
+  // Calculate portfolio analytics (convert crypto USD to INR)
   const portfolioAnalytics = (portfolios || []).map(portfolio => {
     const portfolioAssets = (allAssets || []).filter(a => a.portfolioId === portfolio.id);
-    const totalValue = portfolioAssets.reduce((sum, a) => sum + a.quantity * (a.currentPrice || 0), 0);
-    const totalInvested = portfolioAssets.reduce((sum, a) => sum + a.quantity * (a.avgBuyPrice || 0), 0);
+    const totalValue = portfolioAssets.reduce((sum, a) => {
+      const val = a.quantity * (a.currentPrice || 0);
+      return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
+    }, 0);
+    const totalInvested = portfolioAssets.reduce((sum, a) => {
+      const val = a.quantity * (a.avgBuyPrice || 0);
+      return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
+    }, 0);
     const pnl = totalValue - totalInvested;
     const pnlPercent = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
 
-    const byType = portfolioAssets.reduce((acc, a) => {
-      const val = a.quantity * (a.currentPrice || 0);
-      acc[a.type] = (acc[a.type] || 0) + val;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return { ...portfolio, assets: portfolioAssets, totalValue, totalInvested, pnl, pnlPercent, byType };
+    return { ...portfolio, assets: portfolioAssets, totalValue, totalInvested, pnl, pnlPercent };
   }).sort((a, b) => b.pnlPercent - a.pnlPercent);
 
   const totalPortfolioValue = portfolioAnalytics.reduce((s, p) => s + p.totalValue, 0);
@@ -127,7 +131,7 @@ export function Portfolios() {
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Total Across All</span>
                   </div>
-                  <p className="text-2xl font-bold">${totalPortfolioValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                  <p className="text-2xl font-bold">{formatCompactINR(totalPortfolioValue)}</p>
                   <p className="text-xs text-muted-foreground">{portfolioAnalytics.length} portfolios</p>
                 </CardContent>
               </Card>
@@ -195,11 +199,11 @@ export function Portfolios() {
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div className="p-2 rounded bg-muted/50">
                         <p className="text-xs text-muted-foreground">Value</p>
-                        <p className="font-semibold">${portfolio.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="font-semibold">{formatINR(portfolio.totalValue)}</p>
                       </div>
                       <div className="p-2 rounded bg-muted/50">
                         <p className="text-xs text-muted-foreground">Invested</p>
-                        <p className="font-semibold">${portfolio.totalInvested.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="font-semibold">{formatINR(portfolio.totalInvested)}</p>
                       </div>
                       <div className="p-2 rounded bg-muted/50">
                         <p className="text-xs text-muted-foreground">P&L</p>

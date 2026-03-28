@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { usePriceHistory } from '@/hooks/queries/useMarket';
 import { MoveAssetDialog } from '@/components/common/MoveAssetDialog';
 import { EditTransactionDialog } from '@/components/common/EditTransactionDialog';
+import { formatCurrency, formatINR, formatUSD, getCurrencySymbol, isUSDAsset } from '@/lib/currency';
 import {
   ArrowLeft, TrendingUp, TrendingDown, ExternalLink,
   Newspaper, Calendar, BarChart3, Loader2, Plus,
@@ -136,7 +137,7 @@ function PriceHistoryChart({ symbol, type }: { symbol: string; type: string }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.02 170)" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
-                <Tooltip formatter={(v: number) => [`$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, 'Price']} />
+                        <Tooltip formatter={(v: number) => [formatCurrency(v, asset.type), 'Price']} />
                 <Area type="monotone" dataKey="close" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#priceGrad)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -179,7 +180,7 @@ function FundamentalsSection({ symbol, type }: { symbol: string; type: string })
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div className="p-3 rounded-lg bg-muted/50">
               <p className="text-muted-foreground text-xs">Current Price</p>
-              <p className="font-semibold text-lg">${fundamentals.price?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+              <p className="font-semibold text-lg">{formatCurrency(fundamentals.price, asset.type)}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50">
               <p className="text-muted-foreground text-xs">Change</p>
@@ -189,19 +190,19 @@ function FundamentalsSection({ symbol, type }: { symbol: string; type: string })
             </div>
             <div className="p-3 rounded-lg bg-muted/50">
               <p className="text-muted-foreground text-xs">Day High</p>
-              <p className="font-semibold">${fundamentals.high?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+              <p className="font-semibold">{formatCurrency(fundamentals.high, asset.type)}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50">
               <p className="text-muted-foreground text-xs">Day Low</p>
-              <p className="font-semibold">${fundamentals.low?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+              <p className="font-semibold">{formatCurrency(fundamentals.low, asset.type)}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50">
               <p className="text-muted-foreground text-xs">Open</p>
-              <p className="font-semibold">${fundamentals.open?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+              <p className="font-semibold">{formatCurrency(fundamentals.open, asset.type)}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50">
               <p className="text-muted-foreground text-xs">Previous Close</p>
-              <p className="font-semibold">${fundamentals.previousClose?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+              <p className="font-semibold">{formatCurrency(fundamentals.previousClose, asset.type)}</p>
             </div>
           </div>
         ) : (
@@ -212,7 +213,7 @@ function FundamentalsSection({ symbol, type }: { symbol: string; type: string })
   );
 }
 
-function AddTransactionDialog({ assetId, onAdded }: { assetId: string; onAdded: () => void }) {
+function AddTransactionDialog({ assetId, onAdded, assetType }: { assetId: string; onAdded: () => void; assetType: string }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'buy' | 'sell'>('buy');
   const [quantity, setQuantity] = useState('');
@@ -298,7 +299,7 @@ function AddTransactionDialog({ assetId, onAdded }: { assetId: string; onAdded: 
           {quantity && price && (
             <div className="p-3 rounded-lg bg-muted text-sm">
               <span className="text-muted-foreground">Total: </span>
-              <span className="font-semibold">${(Number(quantity) * Number(price)).toLocaleString()}</span>
+              <span className="font-semibold">{formatCurrency(Number(quantity) * Number(price), assetType)}</span>
             </div>
           )}
           <Button type="submit" className="w-full" disabled={createTxn.isPending}>
@@ -384,7 +385,7 @@ export function AssetDetail() {
             assetName={asset.name}
             onMoved={() => refetchDetail()}
           />
-          <AddTransactionDialog assetId={asset.id} onAdded={() => refetchDetail()} />
+          <AddTransactionDialog assetId={asset.id} onAdded={() => refetchDetail()} assetType={asset.type} />
         </div>
       </div>
 
@@ -392,13 +393,13 @@ export function AssetDetail() {
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         {[
           { label: 'Quantity', value: summary.totalQuantity.toLocaleString() },
-          { label: 'Avg Price', value: `$${summary.avgBuyPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
-          { label: 'Current Price', value: `$${summary.currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
-          { label: 'Total Invested', value: `$${summary.totalInvested.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
-          { label: 'Current Value', value: `$${summary.currentValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
+          { label: 'Avg Price', value: formatCurrency(summary.avgBuyPrice, asset.type) },
+          { label: 'Current Price', value: formatCurrency(summary.currentPrice, asset.type) },
+          { label: 'Total Invested', value: formatCurrency(summary.totalInvested, asset.type) },
+          { label: 'Current Value', value: formatCurrency(summary.currentValue, asset.type) },
           {
             label: 'P&L',
-            value: `${summary.pnl >= 0 ? '+' : ''}$${summary.pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
+            value: `${summary.pnl >= 0 ? '+' : ''}${formatCurrency(summary.pnl, asset.type)}`,
             change: summary.pnlPercent,
           },
         ].map((item, i) => (
@@ -504,8 +505,8 @@ export function AssetDetail() {
                             </span>
                           </td>
                           <td className="p-4 text-sm">{txn.quantity}</td>
-                          <td className="p-4 text-sm">${txn.pricePerUnit.toLocaleString()}</td>
-                          <td className="p-4 text-sm font-medium">${txn.totalAmount.toLocaleString()}</td>
+                          <td className="p-4 text-sm">{formatCurrency(txn.pricePerUnit, asset.type)}</td>
+                          <td className="p-4 text-sm font-medium">{formatCurrency(txn.totalAmount, asset.type)}</td>
                           <td className="p-4 text-sm text-muted-foreground">{txn.notes || '-'}</td>
                           <td className="p-4">
                             <EditTransactionDialog transaction={{ ...txn, assetId: asset.id }} />

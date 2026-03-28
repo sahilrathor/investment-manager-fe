@@ -82,7 +82,7 @@ export function Topbar() {
               }
             </Button>
 
-            <DropdownMenu>
+            <DropdownMenu >
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-lg">
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald/20 text-emerald text-xs font-bold">

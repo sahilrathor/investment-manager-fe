@@ -6,6 +6,7 @@ import { MoveAssetDialog } from './MoveAssetDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
+import { formatCurrency, getCurrencySymbol, isUSDAsset } from '@/lib/currency';
 
 interface AssetCardProps {
   asset: Asset;
@@ -35,6 +36,7 @@ export function AssetCard({ asset, onDelete }: AssetCardProps) {
   const invested = asset.quantity * (asset.avgBuyPrice || 0);
   const pnl = value - invested;
   const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+  const currSymbol = getCurrencySymbol(asset.type);
 
   const handleRefresh = () => {
     if (shouldFetchStock) refetchStock();
@@ -57,6 +59,9 @@ export function AssetCard({ asset, onDelete }: AssetCardProps) {
                   <RefreshCw className="h-3 w-3 text-green-500" />
                 )
               )}
+              {isUSDAsset(asset.type) && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 font-medium">USD</span>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">{asset.symbol}</p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
@@ -66,23 +71,23 @@ export function AssetCard({ asset, onDelete }: AssetCardProps) {
               </div>
               <div>
                 <p className="text-muted-foreground">Avg Price</p>
-                <p className="font-medium">${(asset.avgBuyPrice || 0).toLocaleString()}</p>
+                <p className="font-medium">{formatCurrency(asset.avgBuyPrice || 0, asset.type)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Current Price</p>
                 <p className="font-medium">
-                  ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  {formatCurrency(currentPrice, asset.type)}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground">Value</p>
-                <p className="font-medium">${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p className="font-medium">{formatCurrency(value, asset.type)}</p>
               </div>
               {invested > 0 && (
                 <div className="col-span-2">
                   <p className="text-muted-foreground">P&L</p>
                   <p className={`font-medium ${pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                    ${pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                    {currSymbol}{pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                   </p>
                 </div>
               )}
