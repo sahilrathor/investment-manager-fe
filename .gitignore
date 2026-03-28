@@ -1,4 +1,6 @@
 node_modules
 .env
+dist
+
 architecture.md
 readme.md
