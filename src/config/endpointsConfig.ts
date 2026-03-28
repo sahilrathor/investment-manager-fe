@@ -54,6 +54,9 @@ export const endpointsConfig = {
   MARKET: {
     STOCK: (symbol: string) => `${API}/market/stock/${symbol}`,
     CRYPTO: (id: string) => `${API}/market/crypto/${id}`,
+    HISTORY: (symbol: string, range?: string) => `${API}/market/history/${symbol}?range=${range || '1m'}`,
+    INDICES: `${API}/market/indices`,
+    COMPARE: (s1: string, s2: string, range?: string) => `${API}/market/compare?symbol1=${s1}&symbol2=${s2}&range=${range || '1m'}`,
     SEARCH: `${API}/market/search`,
   },
 

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Cookies from 'js-cookie';
 
 export function Register() {
   const [name, setName] = useState('');
@@ -16,7 +17,7 @@ export function Register() {
   const register = useRegister();
   const { data: auth } = useAuthStore();
 
-  if (auth.isAuthenticated) {
+  if (auth.isAuthenticated || Cookies.get('access_token')) {
     return <Navigate to="/" replace />;
   }
 

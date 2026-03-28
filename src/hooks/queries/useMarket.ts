@@ -29,6 +29,31 @@ export interface SearchResult {
   type: string;
 }
 
+export interface PriceHistoryPoint {
+  date: string;
+  close: number;
+  high: number;
+  low: number;
+  volume: number;
+}
+
+export interface IndexData {
+  symbol: string;
+  name: string;
+  fullName: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  high: number;
+  low: number;
+  sparkline: number[];
+}
+
+export interface CompareData {
+  asset1: { symbol: string; history: { date: string; value: number; price: number }[] };
+  asset2: { symbol: string; history: { date: string; value: number; price: number }[] };
+}
+
 export function useStockPrice(symbol: string) {
   return useQuery({
     queryKey: queryKeys.market.stock(symbol),
@@ -54,5 +79,32 @@ export function useMarketSearch(query: string, type: string = 'stock') {
     queryKey: queryKeys.market.search(query, type),
     queryFn: () => api.get<SearchResult[]>(`${endpointsConfig.MARKET.SEARCH}?q=${query}&type=${type}`),
     enabled: query.length >= 2,
+  });
+}
+
+export function usePriceHistory(symbol: string, range: string = '1m') {
+  return useQuery({
+    queryKey: [...queryKeys.market.all, 'history', symbol, range],
+    queryFn: () => api.get<PriceHistoryPoint[]>(endpointsConfig.MARKET.HISTORY(symbol, range)),
+    enabled: !!symbol,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useIndices() {
+  return useQuery({
+    queryKey: [...queryKeys.market.all, 'indices'],
+    queryFn: () => api.get<IndexData[]>(endpointsConfig.MARKET.INDICES),
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+}
+
+export function useCompare(symbol1: string, symbol2: string, range: string = '1m') {
+  return useQuery({
+    queryKey: [...queryKeys.market.all, 'compare', symbol1, symbol2, range],
+    queryFn: () => api.get<CompareData>(endpointsConfig.MARKET.COMPARE(symbol1, symbol2, range)),
+    enabled: !!symbol1 && !!symbol2,
+    staleTime: 5 * 60 * 1000,
   });
 }

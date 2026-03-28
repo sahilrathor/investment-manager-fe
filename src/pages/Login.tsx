@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { envConfig } from '@/config/envConfig';
+import Cookies from 'js-cookie';
 
 export function Login() {
   const [email, setEmail] = useState(envConfig.API_LOGIN_EMAIL);
@@ -16,7 +17,8 @@ export function Login() {
   const login = useLogin();
   const { data: auth } = useAuthStore();
 
-  if (auth.isAuthenticated) {
+  // Check both store state and cookie token
+  if (auth.isAuthenticated || Cookies.get('access_token')) {
     return <Navigate to="/" replace />;
   }
 
