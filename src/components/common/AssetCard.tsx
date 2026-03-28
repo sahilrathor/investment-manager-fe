@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useStockPrice, useCryptoPrice } from '@/hooks/queries/useMarket';
 import { Asset } from '@/hooks/queries/useAssets';
+import { MoveAssetDialog } from './MoveAssetDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
@@ -93,6 +94,11 @@ export function AssetCard({ asset, onDelete }: AssetCardProps) {
                 <RefreshCw className={`h-4 w-4 ${isLoadingPrice ? 'animate-spin' : ''}`} />
               </Button>
             )}
+            <MoveAssetDialog
+              assetId={asset.id}
+              currentPortfolioId={asset.portfolioId}
+              assetName={asset.name}
+            />
             <Button
               variant="ghost"
               size="icon"

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { usePriceHistory } from '@/hooks/queries/useMarket';
+import { MoveAssetDialog } from '@/components/common/MoveAssetDialog';
 import {
   ArrowLeft, TrendingUp, TrendingDown, ExternalLink,
   Newspaper, Calendar, BarChart3, Loader2, Plus,
@@ -375,7 +376,15 @@ export function AssetDetail() {
             </p>
           </div>
         </div>
-        <AddTransactionDialog assetId={asset.id} onAdded={() => refetchDetail()} />
+        <div className="flex items-center gap-2">
+          <MoveAssetDialog
+            assetId={asset.id}
+            currentPortfolioId={asset.portfolioId}
+            assetName={asset.name}
+            onMoved={() => refetchDetail()}
+          />
+          <AddTransactionDialog assetId={asset.id} onAdded={() => refetchDetail()} />
+        </div>
       </div>
 
       {/* Investment Summary */}

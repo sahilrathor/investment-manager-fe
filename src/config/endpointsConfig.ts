@@ -29,6 +29,7 @@ export const endpointsConfig = {
     EVENTS: (id: string) => `${API}/assets/${id}/events`,
     UPDATE: (id: string) => `${API}/assets/${id}`,
     DELETE: (id: string) => `${API}/assets/${id}`,
+    MOVE: (id: string) => `${API}/assets/${id}/move`,
   },
 
   TRANSACTIONS: {
