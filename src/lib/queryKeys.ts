@@ -15,6 +15,8 @@ export const queryKeys = {
     listAll: () => [...queryKeys.assets.lists(), 'all'] as const,
     list: (portfolioId: string) => [...queryKeys.assets.lists(), portfolioId] as const,
     detail: (id: string) => [...queryKeys.assets.all, 'detail', id] as const,
+    news: (id: string) => [...queryKeys.assets.all, 'news', id] as const,
+    events: (id: string) => [...queryKeys.assets.all, 'events', id] as const,
   },
   transactions: {
     all: ['transactions'] as const,

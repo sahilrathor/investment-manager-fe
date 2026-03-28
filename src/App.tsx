@@ -5,6 +5,7 @@ import { Register } from '@/pages/Register';
 import { Dashboard } from '@/pages/Dashboard';
 import { Portfolios } from '@/pages/Portfolios';
 import { PortfolioDetail } from '@/pages/PortfolioDetail';
+import { AssetDetail } from '@/pages/AssetDetail';
 import { Transactions } from '@/pages/Transactions';
 import { Sips } from '@/pages/Sips';
 import { Alerts } from '@/pages/Alerts';
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/portfolios" element={<Portfolios />} />
           <Route path="/portfolios/:id" element={<PortfolioDetail />} />
+          <Route path="/assets/:id" element={<AssetDetail />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/sips" element={<Sips />} />
           <Route path="/alerts" element={<Alerts />} />

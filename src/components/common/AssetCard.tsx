@@ -41,12 +41,12 @@ export function AssetCard({ asset, onDelete }: AssetCardProps) {
   };
 
   return (
-    <Card>
+    <Card className="hover:border-primary/50 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div className="flex-1">
+          <Link to={`/assets/${asset.id}`} className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold">{asset.name}</h3>
+              <h3 className="font-semibold hover:underline">{asset.name}</h3>
               {asset.useLivePrice && (
                 isLoadingPrice ? (
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -86,16 +86,13 @@ export function AssetCard({ asset, onDelete }: AssetCardProps) {
                 </div>
               )}
             </div>
-          </div>
-          <div className="flex flex-col gap-1">
+          </Link>
+          <div className="flex flex-col gap-1 ml-2">
             {asset.useLivePrice && (
               <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isLoadingPrice}>
                 <RefreshCw className={`h-4 w-4 ${isLoadingPrice ? 'animate-spin' : ''}`} />
               </Button>
             )}
-            <Link to={`/transactions?assetId=${asset.id}`}>
-              <Button variant="ghost" size="sm">Txns</Button>
-            </Link>
             <Button
               variant="ghost"
               size="icon"
