@@ -13,8 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, ArrowLeft, Package, Search, Loader2, TrendingUp } from 'lucide-react';
+import { Plus, ArrowLeft, Package, Search, Loader2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useExchangeRate, formatINR, formatCompactINR, isUSDAsset, usdToINR } from '@/lib/currency';
+import { cn } from '@/lib/utils';
 
 export function PortfolioDetail() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +24,9 @@ export function PortfolioDetail() {
   const { data: assets } = useAssets(id!);
   const createAsset = useCreateAsset();
   const deleteAsset = useDeleteAsset();
+  const { data: exchangeRate } = useExchangeRate();
+  
+  const usdToInrRate = exchangeRate?.rate || 83;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -113,6 +118,20 @@ export function PortfolioDetail() {
   const stockAssets = assets?.filter((a) => a.type === 'stock' || a.type === 'mutual_fund') || [];
   const cryptoAssets = assets?.filter((a) => a.type === 'crypto') || [];
   const sipAssets = assets?.filter((a) => a.type === 'sip') || [];
+
+  // Calculate portfolio statistics
+  const totalValue = (assets || []).reduce((sum, a) => {
+    const val = a.quantity * (a.currentPrice || 0);
+    return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
+  }, 0);
+
+  const totalInvested = (assets || []).reduce((sum, a) => {
+    const val = a.quantity * (a.avgBuyPrice || 0);
+    return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
+  }, 0);
+
+  const totalPnL = totalValue - totalInvested;
+  const pnlPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -249,6 +268,56 @@ export function PortfolioDetail() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Portfolio Summary */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl p-6 card-gradient-emerald text-white">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-white/80">Total Value</p>
+            <Wallet className="h-5 w-5 text-white/60" />
+          </div>
+          <p className="text-3xl font-bold mt-2">{formatCompactINR(totalValue)}</p>
+          <p className="text-sm text-white/70 mt-1">{assets?.length || 0} assets</p>
+        </div>
+
+        <Card className="border-2 border-emerald/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-emerald">Total Invested</p>
+              <TrendingUp className="h-5 w-5 text-emerald" />
+            </div>
+            <p className="text-3xl font-bold mt-2">{formatCompactINR(totalInvested)}</p>
+            <p className="text-sm text-muted-foreground mt-1">Cost basis</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Total P&L</p>
+              {totalPnL >= 0 ? <ArrowUpRight className="h-5 w-5 text-profit" /> : <ArrowDownRight className="h-5 w-5 text-loss" />}
+            </div>
+            <p className={cn("text-3xl font-bold mt-2", totalPnL >= 0 ? 'text-profit' : 'text-loss')}>
+              {totalPnL >= 0 ? '+' : ''}{formatINR(totalPnL)}
+            </p>
+            <p className={cn("text-sm mt-1", totalPnL >= 0 ? 'text-profit' : 'text-loss')}>
+              {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Created</p>
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {portfolio?.createdAt ? new Date(portfolio.createdAt).toLocaleDateString() : 'N/A'}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">Portfolio creation date</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="stocks">
