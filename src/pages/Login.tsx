@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useLogin } from '@/hooks/queries/useAuth';
-import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,10 +14,8 @@ export function Login() {
   const [email, setEmail] = useState(envConfig.API_LOGIN_EMAIL);
   const [password, setPassword] = useState(envConfig.API_LOGIN_PASS);
   const login = useLogin();
-  const { data: auth } = useAuthStore();
 
-  // Check both store state and cookie token
-  if (auth.isAuthenticated || Cookies.get('access_token')) {
+  if (Cookies.get('access_token')) {
     return <Navigate to="/" replace />;
   }
 

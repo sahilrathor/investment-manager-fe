@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useRegister } from '@/hooks/queries/useAuth';
-import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +14,8 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const register = useRegister();
-  const { data: auth } = useAuthStore();
 
-  if (auth.isAuthenticated || Cookies.get('access_token')) {
+  if (Cookies.get('access_token')) {
     return <Navigate to="/" replace />;
   }
 

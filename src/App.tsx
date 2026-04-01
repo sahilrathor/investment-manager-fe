@@ -11,6 +11,8 @@ import { Transactions } from '@/pages/Transactions';
 import { Sips } from '@/pages/Sips';
 import { Alerts } from '@/pages/Alerts';
 import { Settings } from '@/pages/Settings';
+import { Screener } from '@/pages/Screener';
+import { Undervalued } from '@/pages/Undervalued';
 
 export default function App() {
   return (
@@ -23,6 +25,8 @@ export default function App() {
           <Route path="/portfolios" element={<Portfolios />} />
           <Route path="/portfolios/:id" element={<PortfolioDetail />} />
           <Route path="/assets/:id" element={<AssetDetail />} />
+          <Route path="/screener" element={<Screener />} />
+          <Route path="/undervalued" element={<Undervalued />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/sips" element={<Sips />} />

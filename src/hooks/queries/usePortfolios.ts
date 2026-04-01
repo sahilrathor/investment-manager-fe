@@ -15,6 +15,23 @@ export interface CreatePortfolioPayload {
   description?: string;
 }
 
+export interface PortfolioAnalytics {
+  totalInvested: number;
+  currentValue: number;
+  totalPnL: number;
+  returnPercent: number;
+  bestPerformer: { symbol: string; pnlPercent: number } | null;
+  worstPerformer: { symbol: string; pnlPercent: number } | null;
+  allocation: { symbol: string; name: string; value: number; percent: number }[];
+  stockVsCrypto: { stocks: number; crypto: number };
+}
+
+export interface PortfolioPerformancePoint {
+  date: string;
+  value: number;
+  invested: number;
+}
+
 export function usePortfolios() {
   return useQuery({
     queryKey: queryKeys.portfolios.lists(),
@@ -56,5 +73,23 @@ export function useDeletePortfolio() {
   return useMutation({
     mutationFn: (id: string) => api.delete(endpointsConfig.PORTFOLIOS.DELETE(id)),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.portfolios.lists() }),
+  });
+}
+
+export function usePortfolioAnalytics(id: string) {
+  return useQuery({
+    queryKey: queryKeys.portfolios.analytics(id),
+    queryFn: () => api.get<PortfolioAnalytics>(endpointsConfig.PORTFOLIOS.ANALYTICS(id)),
+    enabled: !!id,
+    staleTime: 60000,
+  });
+}
+
+export function usePortfolioPerformance(id: string) {
+  return useQuery({
+    queryKey: queryKeys.portfolios.performance(id),
+    queryFn: () => api.get<PortfolioPerformancePoint[]>(endpointsConfig.PORTFOLIOS.PERFORMANCE(id)),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }

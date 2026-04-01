@@ -8,6 +8,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.portfolios.all, 'list'] as const,
     list: (filters?: Record<string, unknown>) => [...queryKeys.portfolios.lists(), filters] as const,
     detail: (id: string) => [...queryKeys.portfolios.all, 'detail', id] as const,
+    analytics: (id: string) => [...queryKeys.portfolios.all, 'analytics', id] as const,
+    performance: (id: string) => [...queryKeys.portfolios.all, 'performance', id] as const,
   },
   assets: {
     all: ['assets'] as const,
@@ -36,7 +38,11 @@ export const queryKeys = {
   market: {
     all: ['market'] as const,
     stock: (symbol: string) => [...queryKeys.market.all, 'stock', symbol] as const,
+    stockFundamentals: (symbol: string) => [...queryKeys.market.all, 'stockFundamentals', symbol] as const,
     crypto: (id: string) => [...queryKeys.market.all, 'crypto', id] as const,
+    cryptoDetails: (id: string) => [...queryKeys.market.all, 'cryptoDetails', id] as const,
     search: (q: string, type: string) => [...queryKeys.market.all, 'search', q, type] as const,
+    screener: (filters: Record<string, unknown>) => [...queryKeys.market.all, 'screener', filters] as const,
+    undervalued: () => [...queryKeys.market.all, 'undervalued'] as const,
   },
 } as const;

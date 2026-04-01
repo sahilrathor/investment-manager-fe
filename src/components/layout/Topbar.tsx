@@ -20,6 +20,8 @@ import { useState } from 'react';
 const navItems = [
   { path: '/', label: 'Dashboard' },
   { path: '/portfolios', label: 'Portfolios' },
+  { path: '/screener', label: 'Screener' },
+  { path: '/undervalued', label: 'Undervalued' },
   { path: '/transactions', label: 'Transactions' },
   { path: '/sips', label: 'SIPs' },
   { path: '/alerts', label: 'Alerts' },

@@ -7,24 +7,29 @@ import { endpointsConfig } from '@/config/endpointsConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { usePriceHistory } from '@/hooks/queries/useMarket';
+import { usePriceHistory, useStockFundamentals, useCryptoDetails } from '@/hooks/queries/useMarket';
 import { MoveAssetDialog } from '@/components/common/MoveAssetDialog';
 import { EditTransactionDialog } from '@/components/common/EditTransactionDialog';
-import { formatCurrency, formatINR, formatUSD, getCurrencySymbol, isUSDAsset } from '@/lib/currency';
+import { PriceChart } from '@/components/stock/PriceChart';
+import { VolumeChart } from '@/components/stock/VolumeChart';
+import { FundamentalsTable } from '@/components/stock/FundamentalsTable';
+import { OHLCCard } from '@/components/stock/OHLCCard';
+import { WeekRangeBar } from '@/components/stock/WeekRangeBar';
+import { AISummary } from '@/components/stock/AISummary';
+import { CryptoMetrics } from '@/components/crypto/CryptoMetrics';
+import { formatCurrency, formatINR, formatUSD, isUSDAsset } from '@/lib/currency';
 import {
   ArrowLeft, TrendingUp, TrendingDown, ExternalLink,
   Newspaper, Calendar, BarChart3, Loader2, Plus,
-  Activity, Clock, DollarSign
+  Activity, Clock, DollarSign, Brain, Info, LineChart
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line
-} from 'recharts';
 import toast from 'react-hot-toast';
 
 // Types
@@ -63,12 +68,6 @@ interface EventsData {
   }>;
 }
 
-interface FundamentalsData {
-  marketCap?: number; peRatio?: number; eps?: number; week52High?: number;
-  week52Low?: number; avgVolume?: number; dividendYield?: number;
-  beta?: number; sector?: number; industry?: number;
-}
-
 function SentimentBadge({ sentiment }: { sentiment: string }) {
   const config = {
     positive: { bg: 'bg-profit/10', text: 'text-profit', label: 'Positive' },
@@ -80,136 +79,6 @@ function SentimentBadge({ sentiment }: { sentiment: string }) {
     <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", config.bg, config.text)}>
       {config.label}
     </span>
-  );
-}
-
-function PriceHistoryChart({ symbol, type }: { symbol: string; type: string }) {
-  const [range, setRange] = useState('1m');
-  const shouldFetch = type === 'stock' || type === 'mutual_fund' || type === 'crypto';
-  const { data: history, isLoading } = usePriceHistory(shouldFetch ? symbol : '', range);
-
-  if (!shouldFetch) return null;
-
-  const ranges = [
-    { key: '1w', label: '1W' },
-    { key: '1m', label: '1M' },
-    { key: '3m', label: '3M' },
-    { key: '6m', label: '6M' },
-    { key: '1y', label: '1Y' },
-  ];
-
-  return (
-    <Card className="chart-glow">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <Activity className="h-4 w-4" />
-          Price History
-        </CardTitle>
-        <div className="flex gap-1">
-          {ranges.map(r => (
-            <Button
-              key={r.key}
-              variant={range === r.key ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-7 text-xs px-2"
-              onClick={() => setRange(r.key)}
-            >
-              {r.label}
-            </Button>
-          ))}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="h-64 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : history && history.length > 0 ? (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history}>
-                <defs>
-                  <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.02 170)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
-                        <Tooltip formatter={(v: number) => [formatCurrency(v, asset.type), 'Price']} />
-                <Area type="monotone" dataKey="close" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#priceGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            No price history available
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function FundamentalsSection({ symbol, type }: { symbol: string; type: string }) {
-  const shouldFetch = type === 'stock' || type === 'mutual_fund';
-
-  const { data: fundamentals, isLoading } = useQuery({
-    queryKey: [...queryKeys.market.all, 'fundamentals', symbol],
-    queryFn: () => api.get<any>(endpointsConfig.MARKET.STOCK(symbol)),
-    enabled: shouldFetch,
-  });
-
-  if (!shouldFetch) return null;
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <BarChart3 className="h-4 w-4" />
-          Market Data
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : fundamentals ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-muted-foreground text-xs">Current Price</p>
-              <p className="font-semibold text-lg">{formatCurrency(fundamentals.price, asset.type)}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-muted-foreground text-xs">Change</p>
-              <p className={cn("font-semibold text-lg", fundamentals.change >= 0 ? 'text-profit' : 'text-loss')}>
-                {fundamentals.change >= 0 ? '+' : ''}{fundamentals.change?.toFixed(2)} ({fundamentals.changePercent?.toFixed(2)}%)
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-muted-foreground text-xs">Day High</p>
-              <p className="font-semibold">{formatCurrency(fundamentals.high, asset.type)}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-muted-foreground text-xs">Day Low</p>
-              <p className="font-semibold">{formatCurrency(fundamentals.low, asset.type)}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-muted-foreground text-xs">Open</p>
-              <p className="font-semibold">{formatCurrency(fundamentals.open, asset.type)}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-muted-foreground text-xs">Previous Close</p>
-              <p className="font-semibold">{formatCurrency(fundamentals.previousClose, asset.type)}</p>
-            </div>
-          </div>
-        ) : (
-          <p className="text-center text-muted-foreground py-4">No market data available</p>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
@@ -311,6 +180,255 @@ function AddTransactionDialog({ assetId, onAdded, assetType }: { assetId: string
   );
 }
 
+function OverviewTab({ asset, summary, sentiment, news, newsLoading, earnings, ratings }: any) {
+  const isCrypto = asset.type === 'crypto';
+  const { data: fundamentals, isLoading: fundLoading } = useStockFundamentals(isCrypto ? '' : asset.symbol);
+  const { data: cryptoDetails, isLoading: cryptoLoading } = useCryptoDetails(isCrypto ? asset.symbol : '');
+
+  const formatPrice = (val: number) => formatCurrency(val, asset.type);
+
+  return (
+    <div className="space-y-6">
+      {/* 52 Week Range (stocks only) */}
+      {!isCrypto && fundamentals && (
+        <WeekRangeBar
+          currentPrice={fundamentals.currentPrice}
+          weekHigh={fundamentals.fiftyTwoWeekHigh}
+          weekLow={fundamentals.fiftyTwoWeekLow}
+          formatPrice={formatPrice}
+        />
+      )}
+
+      {/* Quick Stats Row */}
+      {!isCrypto && fundamentals && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">Market Cap</p>
+            <p className="font-semibold text-sm">
+              {fundamentals.marketCap > 0 ? `${formatINR(fundamentals.marketCap)}` : 'N/A'}
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">PE Ratio</p>
+            <p className="font-semibold text-sm">{fundamentals.peRatio?.toFixed(1) || 'N/A'}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">EPS</p>
+            <p className="font-semibold text-sm">{fundamentals.eps ? formatINR(fundamentals.eps) : 'N/A'}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">Dividend Yield</p>
+            <p className="font-semibold text-sm">
+              {fundamentals.dividendYield ? `${(fundamentals.dividendYield * 100).toFixed(2)}%` : 'N/A'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Crypto Quick Stats */}
+      {isCrypto && cryptoDetails && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">Market Cap</p>
+            <p className="font-semibold text-sm">${(cryptoDetails.marketCap / 1e9).toFixed(2)}B</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">24h Change</p>
+            <p className={cn("font-semibold text-sm", cryptoDetails.change24h >= 0 ? 'text-profit' : 'text-loss')}>
+              {cryptoDetails.change24h >= 0 ? '+' : ''}{cryptoDetails.change24h.toFixed(2)}%
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">Market Rank</p>
+            <p className="font-semibold text-sm">#{cryptoDetails.marketCapRank || 'N/A'}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">ATH</p>
+            <p className="font-semibold text-sm">${cryptoDetails.ath.toLocaleString()}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Sentiment */}
+      {sentiment && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Market Sentiment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-muted-foreground text-xs">News Score</p>
+                <p className="font-semibold">{(sentiment.companyNewsScore * 100).toFixed(1)}%</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-muted-foreground text-xs">Bullish</p>
+                <p className="font-semibold text-profit">{(sentiment.bullishPercent * 100).toFixed(1)}%</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-muted-foreground text-xs">Bearish</p>
+                <p className="font-semibold text-loss">{(sentiment.bearishPercent * 100).toFixed(1)}%</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-muted-foreground text-xs">Sector Avg</p>
+                <p className="font-semibold">{(sentiment.sectorAverageNewsScore * 100).toFixed(1)}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent News */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Newspaper className="h-4 w-4" />
+            Recent News
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {newsLoading ? (
+            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : news.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4 text-sm">No recent news</p>
+          ) : (
+            <div className="space-y-3">
+              {news.slice(0, 3).map((item: any) => (
+                <div key={item.id} className="flex gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  {item.image && (
+                    <img src={item.image} alt="" className="w-12 h-12 rounded object-cover flex-shrink-0"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-medium text-sm line-clamp-1">{item.headline}</h4>
+                      <SentimentBadge sentiment={item.sentiment} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.summary}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {item.source} · {item.datetime ? format(new Date(item.datetime), 'MMM dd') : ''}
+                      </span>
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald hover:underline">
+                        Read
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function FinancialsTab({ asset }: any) {
+  const isCrypto = asset.type === 'crypto';
+  const { data: fundamentals, isLoading: fundLoading } = useStockFundamentals(isCrypto ? '' : asset.symbol);
+  const { data: cryptoDetails, isLoading: cryptoLoading } = useCryptoDetails(isCrypto ? asset.symbol : '');
+  const { data: history } = usePriceHistory(asset.symbol, '1m');
+
+  const formatPrice = (val: number) => formatCurrency(val, asset.type);
+
+  if (isCrypto) {
+    return <CryptoMetrics data={cryptoDetails || null} isLoading={cryptoLoading} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <FundamentalsTable data={fundamentals || {
+          currentPrice: 0, marketCap: 0, fiftyTwoWeekHigh: 0, fiftyTwoWeekLow: 0,
+          peRatio: null, forwardPE: null, pbRatio: null, eps: null, bookValue: null,
+          roe: null, debtToEquity: null, revenueGrowth: null, profitGrowth: null,
+          dividendYield: null, currentRatio: null, quickRatio: null, operatingMargins: null,
+          profitMargins: null, grossMargins: null, revenuePerShare: null, targetMeanPrice: null,
+          recommendationKey: null, numberOfAnalystOpinions: null, distanceFrom52WeekHigh: 0,
+          distanceFrom52WeekLow: 0, sector: null,
+        }} />
+        {history && history.length > 0 && (
+          <OHLCCard
+            open={history[history.length - 1]?.close || 0}
+            high={history[history.length - 1]?.high || 0}
+            low={history[history.length - 1]?.low || 0}
+            close={history[history.length - 1]?.close || 0}
+            volume={history[history.length - 1]?.volume || 0}
+            formatPrice={formatPrice}
+          />
+        )}
+      </div>
+
+      {/* Analyst Recommendation */}
+      {fundamentals?.recommendationKey && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Analyst Recommendation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Badge variant={
+                ['strongBuy', 'buy'].includes(fundamentals.recommendationKey) ? 'success' :
+                fundamentals.recommendationKey === 'hold' ? 'warning' : 'destructive'
+              } className="text-sm">
+                {fundamentals.recommendationKey.replace(/([A-Z])/g, ' $1').trim()}
+              </Badge>
+              {fundamentals.targetMeanPrice && (
+                <span className="text-sm text-muted-foreground">
+                  Target: {formatINR(fundamentals.targetMeanPrice)}
+                </span>
+              )}
+              {fundamentals.numberOfAnalystOpinions && (
+                <span className="text-xs text-muted-foreground">
+                  ({fundamentals.numberOfAnalystOpinions} analysts)
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function ChartTab({ asset }: any) {
+  const isCrypto = asset.type === 'crypto';
+  const [range, setRange] = useState('1m');
+  const { data: history, isLoading } = usePriceHistory(asset.symbol, range);
+
+  const formatPrice = (val: number) => formatCurrency(val, asset.type);
+
+  const isPositive = history && history.length > 1
+    ? history[history.length - 1].close >= history[0].close
+    : true;
+
+  return (
+    <div className="space-y-6">
+      <PriceChart symbol={asset.symbol} assetType={asset.type} formatPrice={formatPrice} />
+      {history && <VolumeChart data={history} />}
+    </div>
+  );
+}
+
+function AISummaryTab({ asset }: any) {
+  const isCrypto = asset.type === 'crypto';
+  const { data: fundamentals, isLoading } = useStockFundamentals(isCrypto ? '' : asset.symbol);
+
+  if (isCrypto) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Brain className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">AI Summary is available for stocks only</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return <AISummary data={fundamentals || null} isLoading={isLoading} />;
+}
+
 export function AssetDetail() {
   const { id } = useParams<{ id: string }>();
 
@@ -334,8 +452,18 @@ export function AssetDetail() {
 
   if (detailLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-9 w-9" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-20" />)}
+        </div>
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
@@ -354,6 +482,7 @@ export function AssetDetail() {
   const sentiment = newsData?.sentiment;
   const earnings = eventsData?.earnings || [];
   const ratings = eventsData?.ratings || [];
+  const isCrypto = asset.type === 'crypto';
 
   return (
     <div className="space-y-6">
@@ -367,14 +496,15 @@ export function AssetDetail() {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold">{asset.name}</h1>
               {asset.useLivePrice && (
-                <span className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-emerald/10 text-emerald">
+                <Badge variant="success" className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald animate-pulse-green" />
                   LIVE
-                </span>
+                </Badge>
               )}
+              <Badge variant="outline">{asset.type.replace('_', ' ').toUpperCase()}</Badge>
             </div>
             <p className="text-muted-foreground">
-              {asset.symbol} · {asset.type.replace('_', ' ').toUpperCase()} · {asset.portfolioName}
+              {asset.symbol} · {asset.portfolioName}
             </p>
           </div>
         </div>
@@ -422,44 +552,53 @@ export function AssetDetail() {
         ))}
       </div>
 
-      {/* Price History + Fundamentals */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <PriceHistoryChart symbol={asset.symbol} type={asset.type} />
-        </div>
-        <FundamentalsSection symbol={asset.symbol} type={asset.type} />
-      </div>
+      {/* Main Tabs */}
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview" className="flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="financials" className="flex items-center gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Financials
+          </TabsTrigger>
+          <TabsTrigger value="chart" className="flex items-center gap-1.5">
+            <LineChart className="h-3.5 w-3.5" />
+            Chart
+          </TabsTrigger>
+          <TabsTrigger value="ai-summary" className="flex items-center gap-1.5">
+            <Brain className="h-3.5 w-3.5" />
+            AI Summary
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Sentiment */}
-      {sentiment && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Market Sentiment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="p-3 rounded-lg bg-muted/50">
-                <p className="text-muted-foreground text-xs">News Score</p>
-                <p className="font-semibold">{(sentiment.companyNewsScore * 100).toFixed(1)}%</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50">
-                <p className="text-muted-foreground text-xs">Bullish</p>
-                <p className="font-semibold text-profit">{(sentiment.bullishPercent * 100).toFixed(1)}%</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50">
-                <p className="text-muted-foreground text-xs">Bearish</p>
-                <p className="font-semibold text-loss">{(sentiment.bearishPercent * 100).toFixed(1)}%</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50">
-                <p className="text-muted-foreground text-xs">Sector Avg</p>
-                <p className="font-semibold">{(sentiment.sectorAverageNewsScore * 100).toFixed(1)}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        <TabsContent value="overview">
+          <OverviewTab
+            asset={asset}
+            summary={summary}
+            sentiment={sentiment}
+            news={news}
+            newsLoading={newsLoading}
+            earnings={earnings}
+            ratings={ratings}
+          />
+        </TabsContent>
 
-      {/* Tabs: News, Events, Transactions */}
+        <TabsContent value="financials">
+          <FinancialsTab asset={asset} />
+        </TabsContent>
+
+        <TabsContent value="chart">
+          <ChartTab asset={asset} />
+        </TabsContent>
+
+        <TabsContent value="ai-summary">
+          <AISummaryTab asset={asset} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Transactions, News, Events (bottom tabs) */}
       <Tabs defaultValue="transactions">
         <TabsList>
           <TabsTrigger value="transactions">Transactions ({transactions.length})</TabsTrigger>
@@ -497,12 +636,9 @@ export function AssetDetail() {
                         <tr key={txn.id} className="border-b last:border-0 hover:bg-muted/50">
                           <td className="p-4 text-sm">{format(new Date(txn.date), 'MMM dd, yyyy')}</td>
                           <td className="p-4">
-                            <span className={cn(
-                              "text-xs font-medium px-2 py-1 rounded-full",
-                              txn.type === 'buy' ? 'bg-loss/10 text-loss' : 'bg-profit/10 text-profit'
-                            )}>
+                            <Badge variant={txn.type === 'buy' ? 'destructive' : 'success'}>
                               {txn.type.toUpperCase()}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="p-4 text-sm">{txn.quantity}</td>
                           <td className="p-4 text-sm">{formatCurrency(txn.pricePerUnit, asset.type)}</td>
@@ -618,7 +754,7 @@ export function AssetDetail() {
                         </tr>
                       </thead>
                       <tbody>
-                        {earnings.map((e, i) => (
+                        {earnings.map((e: any, i: number) => (
                           <tr key={i} className="border-b last:border-0">
                             <td className="py-2 pr-4">{e.date}</td>
                             <td className="py-2 pr-4">Q{e.quarter} {e.year}</td>

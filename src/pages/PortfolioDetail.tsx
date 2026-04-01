@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { usePortfolio } from '@/hooks/queries/usePortfolios';
+import { usePortfolio, usePortfolioAnalytics, usePortfolioPerformance } from '@/hooks/queries/usePortfolios';
 import { useAssets, useCreateAsset, useDeleteAsset } from '@/hooks/queries/useAssets';
 import { useMarketSearch, useStockPrice, useCryptoPrice, SearchResult } from '@/hooks/queries/useMarket';
 import { AssetCard } from '@/components/common/AssetCard';
 import { EditPortfolioDialog } from '@/components/common/EditPortfolioDialog';
+import { PortfolioStats } from '@/components/portfolio/PortfolioStats';
+import { AllocationChart } from '@/components/portfolio/AllocationChart';
+import { StockVsCryptoChart } from '@/components/portfolio/StockVsCryptoChart';
+import { PerformanceChart } from '@/components/portfolio/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,20 +17,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, ArrowLeft, Package, Search, Loader2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Plus, ArrowLeft, Package, Search, Loader2, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useExchangeRate, formatINR, formatCompactINR, isUSDAsset, usdToINR } from '@/lib/currency';
-import { cn } from '@/lib/utils';
 
 export function PortfolioDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: portfolio } = usePortfolio(id!);
   const { data: assets } = useAssets(id!);
+  const { data: analytics, isLoading: analyticsLoading } = usePortfolioAnalytics(id!);
+  const { data: performance, isLoading: performanceLoading } = usePortfolioPerformance(id!);
   const createAsset = useCreateAsset();
   const deleteAsset = useDeleteAsset();
-  const { data: exchangeRate } = useExchangeRate();
-  
-  const usdToInrRate = exchangeRate?.rate || 83;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -119,23 +120,10 @@ export function PortfolioDetail() {
   const cryptoAssets = assets?.filter((a) => a.type === 'crypto') || [];
   const sipAssets = assets?.filter((a) => a.type === 'sip') || [];
 
-  // Calculate portfolio statistics
-  const totalValue = (assets || []).reduce((sum, a) => {
-    const val = a.quantity * (a.currentPrice || 0);
-    return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
-  }, 0);
-
-  const totalInvested = (assets || []).reduce((sum, a) => {
-    const val = a.quantity * (a.avgBuyPrice || 0);
-    return sum + (isUSDAsset(a.type) ? usdToINR(val, usdToInrRate) : val);
-  }, 0);
-
-  const totalPnL = totalValue - totalInvested;
-  const pnlPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
-
   return (
     <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/portfolios">
             <Button variant="ghost" size="icon">
@@ -270,56 +258,20 @@ export function PortfolioDetail() {
         </Dialog>
       </div>
 
-      {/* Portfolio Summary */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl p-6 card-gradient-emerald text-white">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-white/80">Total Value</p>
-            <Wallet className="h-5 w-5 text-white/60" />
-          </div>
-          <p className="text-3xl font-bold mt-2">{formatCompactINR(totalValue)}</p>
-          <p className="text-sm text-white/70 mt-1">{assets?.length || 0} assets</p>
-        </div>
+      {/* Portfolio Statistics */}
+      <PortfolioStats data={analytics || null} isLoading={analyticsLoading} />
 
-        <Card className="border-2 border-emerald/30">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-emerald">Total Invested</p>
-              <TrendingUp className="h-5 w-5 text-emerald" />
-            </div>
-            <p className="text-3xl font-bold mt-2">{formatCompactINR(totalInvested)}</p>
-            <p className="text-sm text-muted-foreground mt-1">Cost basis</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Total P&L</p>
-              {totalPnL >= 0 ? <ArrowUpRight className="h-5 w-5 text-profit" /> : <ArrowDownRight className="h-5 w-5 text-loss" />}
-            </div>
-            <p className={cn("text-3xl font-bold mt-2", totalPnL >= 0 ? 'text-profit' : 'text-loss')}>
-              {totalPnL >= 0 ? '+' : ''}{formatINR(totalPnL)}
-            </p>
-            <p className={cn("text-sm mt-1", totalPnL >= 0 ? 'text-profit' : 'text-loss')}>
-              {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Created</p>
-            </div>
-            <p className="text-2xl font-bold mt-2">
-              {portfolio?.createdAt ? new Date(portfolio.createdAt).toLocaleDateString() : 'N/A'}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">Portfolio creation date</p>
-          </CardContent>
-        </Card>
+      {/* Charts Row */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <AllocationChart data={analytics || null} />
+        <StockVsCryptoChart
+          stocks={analytics?.stockVsCrypto?.stocks || 0}
+          crypto={analytics?.stockVsCrypto?.crypto || 0}
+        />
+        <PerformanceChart data={performance || null} isLoading={performanceLoading} />
       </div>
 
+      {/* Assets Tabs */}
       <Tabs defaultValue="stocks">
         <TabsList>
           <TabsTrigger value="stocks">Stocks ({stockAssets.length})</TabsTrigger>

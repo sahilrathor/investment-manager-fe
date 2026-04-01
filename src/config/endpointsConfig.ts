@@ -17,6 +17,8 @@ export const endpointsConfig = {
     GET: (id: string) => `${API}/portfolios/${id}`,
     UPDATE: (id: string) => `${API}/portfolios/${id}`,
     DELETE: (id: string) => `${API}/portfolios/${id}`,
+    ANALYTICS: (id: string) => `${API}/portfolios/${id}/analytics`,
+    PERFORMANCE: (id: string) => `${API}/portfolios/${id}/performance`,
   },
 
   ASSETS: {
@@ -55,12 +57,16 @@ export const endpointsConfig = {
 
   MARKET: {
     STOCK: (symbol: string) => `${API}/market/stock/${symbol}`,
+    STOCK_FUNDAMENTALS: (symbol: string) => `${API}/market/stock/${symbol}/fundamentals`,
     CRYPTO: (id: string) => `${API}/market/crypto/${id}`,
+    CRYPTO_DETAILS: (id: string) => `${API}/market/crypto/${id}/details`,
     HISTORY: (symbol: string, range?: string) => `${API}/market/history/${symbol}?range=${range || '1m'}`,
     INDICES: `${API}/market/indices`,
     COMPARE: (s1: string, s2: string, range?: string) => `${API}/market/compare?symbol1=${s1}&symbol2=${s2}&range=${range || '1m'}`,
     EXCHANGE_RATE: `${API}/market/exchange-rate`,
     SEARCH: `${API}/market/search`,
+    SCREENER: `${API}/market/screener`,
+    UNDERVALUED: `${API}/market/undervalued`,
   },
 
   DATA: {
