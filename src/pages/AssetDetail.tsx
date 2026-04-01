@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { usePriceHistory, useStockFundamentals, useCryptoDetails } from '@/hooks/queries/useMarket';
+import { usePriceHistory, useStockFundamentals, useCryptoDetails, useStockPrice, useCryptoPrice } from '@/hooks/queries/useMarket';
 import { MoveAssetDialog } from '@/components/common/MoveAssetDialog';
 import { EditTransactionDialog } from '@/components/common/EditTransactionDialog';
 import { PriceChart } from '@/components/stock/PriceChart';
@@ -450,6 +450,16 @@ export function AssetDetail() {
     enabled: !!id,
   });
 
+  const shouldFetchStock = (detailData?.asset?.type === 'stock' || detailData?.asset?.type === 'mutual_fund') && detailData?.asset?.useLivePrice;
+  const shouldFetchCrypto = detailData?.asset?.type === 'crypto' && detailData?.asset?.useLivePrice;
+
+  const { data: stockPrice } = useStockPrice(shouldFetchStock ? detailData?.asset?.symbol || '' : '');
+  const { data: cryptoPrice } = useCryptoPrice(shouldFetchCrypto ? detailData?.asset?.symbol || '' : '');
+
+  const livePrice = shouldFetchStock ? stockPrice?.price
+    : shouldFetchCrypto ? cryptoPrice?.price
+    : undefined;
+
   if (detailLoading) {
     return (
       <div className="space-y-6">
@@ -483,6 +493,12 @@ export function AssetDetail() {
   const earnings = eventsData?.earnings || [];
   const ratings = eventsData?.ratings || [];
   const isCrypto = asset.type === 'crypto';
+
+  const currentPrice = livePrice ?? summary.currentPrice;
+  const currentValue = asset.quantity * currentPrice;
+  const totalInvested = summary.totalInvested;
+  const pnl = currentValue - totalInvested;
+  const pnlPercent = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -524,13 +540,13 @@ export function AssetDetail() {
         {[
           { label: 'Quantity', value: summary.totalQuantity.toLocaleString() },
           { label: 'Avg Price', value: formatCurrency(summary.avgBuyPrice, asset.type) },
-          { label: 'Current Price', value: formatCurrency(summary.currentPrice, asset.type) },
-          { label: 'Total Invested', value: formatCurrency(summary.totalInvested, asset.type) },
-          { label: 'Current Value', value: formatCurrency(summary.currentValue, asset.type) },
+          { label: 'Current Price', value: formatCurrency(currentPrice, asset.type) },
+          { label: 'Total Invested', value: formatCurrency(totalInvested, asset.type) },
+          { label: 'Current Value', value: formatCurrency(currentValue, asset.type) },
           {
             label: 'P&L',
-            value: `${summary.pnl >= 0 ? '+' : ''}${formatCurrency(summary.pnl, asset.type)}`,
-            change: summary.pnlPercent,
+            value: `${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, asset.type)}`,
+            change: pnlPercent,
           },
         ].map((item, i) => (
           <Card key={i}>
